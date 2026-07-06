@@ -1,0 +1,22 @@
+# Premium Send to Client & Document Viewer Checklist
+
+- [x] Add States & Helper Handlers in `App.jsx`
+  - [x] Add `viewerPlan` state variable
+  - [x] Add `handleDownloadPlanPDF(plan)` print simulation function
+  - [x] Add `handleViewTreatmentPlan(plan)` viewer toggles
+- [x] Refactor Dispatch Flows in `App.jsx`
+  - [x] Update Send to Client draft text template with specific Microcopy
+  - [x] Overwrite confirmation overlay with Title, Preview, and Preview PDF/Send triggers
+  - [x] Hook Send action to insert `treatment-plan-card` with snapshot data and wrap success notifications
+- [x] Implement Premium Chat Feed Custom Card in `App.jsx`
+  - [x] Render `treatment-plan-card` row inside messages map loop
+  - [x] Style bullet list items, gradient headers, abstract heartbeat decorations, and buttons
+- [x] Implement Google PDF Window simulation in `App.jsx`
+  - [x] Render dark Google Chrome PDF style workspace toolbar & viewport layout
+  - [x] Add Page 1 (Large Cover page) and Page 2 (Formatted details page)
+- [x] CSS Style Polish in `App.css`
+  - [x] Add rules for `.premium-plan-card`, `.google-pdf-overlay` viewport, and pages layout
+  - [x] Add `@media print` rules for `.always-in-dom` container to guarantee clean PDF printouts with no blank pages
+- [x] Validate Compilation & Walkthrough Testing
+  - [x] Execute `npm run build`
+  - [x] Verify layout and download functionality

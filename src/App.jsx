@@ -35,6 +35,9 @@ import {
   Brain,
   Loader2
 } from 'lucide-react'
+import ClinicalSnapshot from './ClinicalSnapshot'
+import RecommendedActions from './RecommendedActions'
+import TreatmentPlanModal from './TreatmentPlanModal'
 import './App.css'
 
 function App() {
@@ -75,6 +78,22 @@ function App() {
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false)
   const [confirmAction, setConfirmAction] = useState(null)
   const [successToast, setSuccessToast] = useState(null)
+  const [treatmentPlanOpen, setTreatmentPlanOpen] = useState(false)
+
+  // Send treatment plan to active chat and close studio
+  const handleSendTreatmentPlan = () => {
+    const msg = {
+      id: `tplan-${Date.now()}`,
+      type: 'treatment-plan',
+      sender: 'provider',
+      timestamp: 'Sent just now',
+    }
+    setChats(prev => prev.map(c =>
+      c.id === selectedChatId ? { ...c, history: [...c.history, msg] } : c
+    ))
+    setTreatmentPlanOpen(false)
+    setActiveNav('Messages')
+  }
 
   const copilotMessages = [
     "Understanding the client's journey...",
@@ -859,7 +878,7 @@ function App() {
         >
           <Menu size={20} />
         </button>
-        <span className="brand-name" style={{ fontSize: '1.3rem' }}>Mantra</span>
+        <img src="/mantra_logo.png" alt="Mantra" className="mobile-brand-logo" />
         <button 
           className="theme-toggle-btn"
           onClick={() => setDarkTheme(!darkTheme)}
@@ -882,11 +901,8 @@ function App() {
       <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <div className="logo-container">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/>
-            </svg>
+            <img src="/mantra_logo.png" alt="Mantra" className="sidebar-brand-logo" />
           </div>
-          <span className="brand-name">Mantra</span>
 
           {/* Desktop Sidebar Collapse Toggle */}
           <button 
@@ -1226,6 +1242,48 @@ function App() {
                         <span style={{ opacity: 0.7, fontSize: '0.7rem' }}>{item.file.size}</span>
                       </div>
                     )}
+                  </div>
+                  <span className="message-meta">{item.timestamp}</span>
+                </div>
+              )
+            }
+
+            if (item.type === 'treatment-plan') {
+              return (
+                <div key={item.id} className="message-row sent" style={{ alignItems: 'flex-end' }}>
+                  <div className="tplan-chat-card">
+                    {/* Header */}
+                    <div className="tplan-chat-card-hd">
+                      <div className="tplan-chat-card-icon-wrap">
+                        <FileText size={17} />
+                      </div>
+                      <div className="tplan-chat-card-title">Personalized Treatment Plan</div>
+                    </div>
+
+                    {/* Body */}
+                    <p className="tplan-chat-card-body">
+                      Your personalized treatment plan has been prepared by your provider.
+                      This plan outlines your therapy goals, recommended approach, activities,
+                      and next steps designed specifically for your wellness journey.
+                    </p>
+                    <p className="tplan-chat-card-note">Please review it before your next session.</p>
+
+                    {/* CTA */}
+                    <button
+                      className="tplan-chat-card-cta"
+                      onClick={() => setTreatmentPlanOpen(true)}
+                    >
+                      View Treatment Plan
+                    </button>
+
+                    {/* PDF badge */}
+                    <div className="tplan-chat-card-pdf">
+                      <FileText size={13} />
+                      <div className="tplan-chat-card-pdf-info">
+                        <span className="tplan-chat-card-pdf-label">PDF Attached</span>
+                        <span className="tplan-chat-card-pdf-name">TreatmentPlan.pdf</span>
+                      </div>
+                    </div>
                   </div>
                   <span className="message-meta">{item.timestamp}</span>
                 </div>
@@ -1651,18 +1709,20 @@ function App() {
             {/* GLASSMORPHISM HEADER */}
             <header className="copilot-modal-header glassmorphism">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span className="modal-header-brain-emoji">🧠</span>
+                <div className="modal-header-icon-wrap">
+                  <Sparkles size={18} />
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <h3 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 700 }}>
+                  <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 600, letterSpacing: '-0.01em' }}>
                     AI Clinical Copilot
                   </h3>
                   <span className="modal-header-subtitle">
-                    Preparing personalized clinical insights...
+                    Clinical decision support
                   </span>
                 </div>
               </div>
               <button className="modal-close-btn" onClick={() => setCopilotOpen(false)} aria-label="Close Copilot">
-                <Sparkles size={16} className="text-accent animate-pulse" />
+                <X size={16} />
               </button>
             </header>
 
@@ -1693,107 +1753,12 @@ function App() {
               ) : (
                 /* STATE 2: PREMIUM AI CLINICAL INSIGHTS WORKSPACE */
                 <div className="copilot-workspace-layout animate-fadeIn">
-                  {/* LEFT COLUMN: Clinical Snapshot (38%) */}
-                  <div className="copilot-workspace-left">
-                    {/* AI SUMMARY CARD (Collapsible) */}
-                    <div className="workspace-summary-card">
-                      <h4 className="workspace-section-title">
-                        🧠 AI Summary
-                      </h4>
-                      <div className={`summary-paragraph-text ${isSummaryExpanded ? 'expanded' : 'collapsed'}`}>
-                        The client has remained engaged with therapy and has shown gradual improvement over the past few weeks. <span className="summary-highlight">Anxiety before work</span> appears to spike, while mood has remained relatively stable. <span className="summary-highlight">Sleep consistency is improving</span>, though <span className="summary-highlight">activity completion is declining</span> slightly. Based on recent AI conversations, the client responds well to structured guidance and mindfulness exercises.
-                        {isSummaryExpanded ? (
-                          <button 
-                            className="summary-toggle-link inline"
-                            onClick={() => setIsSummaryExpanded(false)}
-                          >
-                            [Read less]
-                          </button>
-                        ) : (
-                          <button 
-                            className="summary-toggle-link absolute"
-                            onClick={() => setIsSummaryExpanded(true)}
-                          >
-                            Read more
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* KEY INSIGHTS LIST */}
-                    <div className="workspace-snapshot-section">
-                      <h4 className="workspace-section-title" style={{ marginBottom: 10 }}>
-                        📋 Key Insights
-                      </h4>
-                      <div className="insights-snapshot-list">
-                        {[
-                          { icon: '✓', title: 'Progress improving', text: 'Client has become more engaged.' },
-                          { icon: '⚠', title: 'Anxiety elevation', text: 'Mild increase in work-related anxiety.' },
-                          { icon: '😴', title: 'Sleep consistency', text: 'Sleep patterns are gradually improving.' },
-                          { icon: '📅', title: 'Next session target', text: 'Focus today\'s discussion on work avoidance.' }
-                        ].map((item, idx) => (
-                          <div key={idx} className="insight-snapshot-row">
-                            <div className="insight-snapshot-header">
-                              <span className="insight-emoji">{item.icon}</span>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <span className="insight-title">{item.title}</span>
-                                <span className="insight-subtitle">{item.text}</span>
-                              </div>
-                            </div>
-                            <button 
-                              className="insight-ask-ai-btn"
-                              onClick={() => handleCopilotChatSubmit(`Explain the insight: "${item.title} - ${item.text}"`)}
-                            >
-                              Ask AI about this
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* AI RECOMMENDATIONS ROWS */}
-                    <div className="workspace-snapshot-section">
-                      <h4 className="workspace-section-title" style={{ marginBottom: 10 }}>
-                        💡 AI Recommendations
-                      </h4>
-                      <div className="recommendations-snapshot-list">
-                        {[
-                          { type: 'yoga', icon: '🧘', title: 'Yoga Session', explanation: 'Reduce physical tension before sleep.', confidence: 'High', impact: 'High Impact' },
-                          { type: 'ocd', icon: '📋', title: 'OCD Assessment', explanation: 'Recommended because symptoms appear different.', confidence: 'High', impact: 'High Impact' },
-                          { type: 'anxiety', icon: '🧠', title: 'Anxiety Assessment', explanation: 'Recommended before next therapy session.', confidence: 'Med', impact: 'Medium Impact' },
-                          { type: 'psych', icon: '👨‍⚕️', title: 'Psychiatry Consult', explanation: 'Suggested if symptoms continue over next weeks.', confidence: 'Med', impact: 'Medium Impact' }
-                        ].map((rec, idx) => (
-                          <div key={idx} className="rec-snapshot-row">
-                            <div className="rec-row-left">
-                              <span className="rec-emoji">{rec.icon}</span>
-                              <div className="rec-text-block">
-                                <div className="rec-title-row">
-                                  <span className="rec-title">{rec.title}</span>
-                                  <span className={`rec-badge ${rec.confidence.toLowerCase()}`}>{rec.confidence}</span>
-                                  <span className="rec-impact-badge">{rec.impact}</span>
-                                </div>
-                                <span className="rec-explanation">{rec.explanation}</span>
-                              </div>
-                            </div>
-                            <div className="rec-row-actions">
-                              <button 
-                                className="rec-why-link"
-                                onClick={() => handleCopilotChatSubmit(`Why is "${rec.title}" recommended for this client?`)}
-                              >
-                                Why?
-                              </button>
-                              <button 
-                                className="rec-send-btn"
-                                onClick={() => handleSendRecommendation(rec.type, rec.title)}
-                              >
-                                Send
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  {/* LEFT COLUMN: Clinical Snapshot */}
+                  <ClinicalSnapshot
+                    isSummaryExpanded={isSummaryExpanded}
+                    setIsSummaryExpanded={setIsSummaryExpanded}
+                    onCopilotChatSubmit={handleCopilotChatSubmit}
+                  />
 
                   {/* RIGHT COLUMN: Interactive Claude-style Workspace (62%) */}
                   <div className="copilot-workspace-right" style={{ position: 'relative' }}>
@@ -1809,6 +1774,12 @@ function App() {
                       </div>
                     </div>
 
+                    {/* Recommended Actions Container */}
+                    <RecommendedActions
+                      onCopilotChatSubmit={handleCopilotChatSubmit}
+                      onSendRecommendation={handleSendRecommendation}
+                    />
+
                     {/* Claude-style dialogue Stream */}
                     <div className="copilot-workspace-chat-log">
                       {copilotChat.map((msg) => (
@@ -1817,44 +1788,6 @@ function App() {
                             {msg.sender === 'ai' ? (
                               <div className="bubble-markdown-rendered">
                                 {renderMarkdown(msg.text)}
-                                
-                                {/* Action Center Cards rendered directly inside the chat stream */}
-                                {msg.actions && msg.actions.length > 0 && (
-                                  <div className="copilot-action-cards-container">
-                                    {msg.actions.map((act) => (
-                                      <div key={act.id} className="copilot-action-card">
-                                        <div className="action-card-left">
-                                          <span className="action-card-emoji">{act.icon}</span>
-                                          <div className="action-card-text-box">
-                                            <div className="action-card-title-row">
-                                              <span className="action-card-title">{act.title}</span>
-                                              <span className={`action-card-badge ${act.confidence.toLowerCase()}`}>
-                                                {act.confidence}
-                                              </span>
-                                            </div>
-                                            <span className="action-card-reason">{act.reason}</span>
-                                          </div>
-                                        </div>
-                                        <div className="action-card-right">
-                                          {act.hasPreview && (
-                                            <button 
-                                              className="action-card-preview-btn"
-                                              onClick={() => alert(`Message Preview:\n${act.previewText}`)}
-                                            >
-                                              Preview
-                                            </button>
-                                          )}
-                                          <button 
-                                            className="action-card-execute-btn"
-                                            onClick={() => setConfirmAction(act)}
-                                          >
-                                            {act.actionText}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
                               </div>
                             ) : (
                               <div className="bubble-text">{msg.text}</div>
@@ -1880,6 +1813,20 @@ function App() {
 
                     {/* Quick Action Suggested Prompt Row & Rounded Input Area */}
                     <div className="copilot-workspace-input-controls">
+                      {/* ── Generate Treatment Plan primary CTA ── */}
+                      <div className="copilot-tplan-cta-wrapper">
+                        <button
+                          className="copilot-tplan-cta-btn"
+                          onClick={() => setTreatmentPlanOpen(true)}
+                        >
+                          <Sparkles size={15} className="copilot-tplan-cta-icon" />
+                          <div className="copilot-tplan-cta-text">
+                            <span className="copilot-tplan-cta-label">Generate Treatment Plan</span>
+                            <span className="copilot-tplan-cta-helper">Create an AI-generated personalized therapy roadmap for this client.</span>
+                          </div>
+                        </button>
+                      </div>
+
                       {/* Suggested prompt chips row */}
                       <div className="suggested-prompts-row-wrapper">
                         <div className="suggested-prompts-scroller">
@@ -1972,6 +1919,14 @@ function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Treatment Plan Modal — rendered at app root, above everything */}
+      {treatmentPlanOpen && (
+        <TreatmentPlanModal
+          onClose={() => setTreatmentPlanOpen(false)}
+          onSendToClient={handleSendTreatmentPlan}
+        />
       )}
     </div>
   )
