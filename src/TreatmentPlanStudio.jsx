@@ -347,7 +347,7 @@ function TreatmentPlanStudio({ onClose, onSendToClient }) {
           <button className="tps-btn tps-btn--secondary" onClick={handleDirectDownload}>
             <Download size={13} /> Download PDF
           </button>
-          <button className="tps-btn tps-btn--secondary" onClick={() => onSendToClient?.()}><Send size={13} /> Send to Client</button>
+          <button type="button" className="tps-btn tps-btn--secondary" onClick={() => onSendToClient?.(sections)}><Send size={13} /> Send to Client</button>
           <button className="tps-topbar-close" onClick={onClose} aria-label="Close"><X size={15} /></button>
         </div>
       </div>

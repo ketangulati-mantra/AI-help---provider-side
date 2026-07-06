@@ -33,11 +33,15 @@ import {
   MapPin,
   Sparkles,
   Brain,
-  Loader2
+  Loader2,
+  FileText,
+  Download,
+  Eye,
 } from 'lucide-react'
 import ClinicalSnapshot from './ClinicalSnapshot'
 import RecommendedActions from './RecommendedActions'
 import TreatmentPlanModal from './TreatmentPlanModal'
+import TplanPreviewModal from './TplanPreviewModal'
 import './App.css'
 
 function App() {
@@ -79,15 +83,18 @@ function App() {
   const [confirmAction, setConfirmAction] = useState(null)
   const [successToast, setSuccessToast] = useState(null)
   const [treatmentPlanOpen, setTreatmentPlanOpen] = useState(false)
+  const [sentPlanSections, setSentPlanSections] = useState(null)
+  const [sentPlanPreviewOpen, setSentPlanPreviewOpen] = useState(false)
 
-  // Send treatment plan to active chat and close studio
-  const handleSendTreatmentPlan = () => {
+  // Send treatment plan to active chat — stores sections for PDF view
+  const handleSendTreatmentPlan = (sections) => {
     const msg = {
       id: `tplan-${Date.now()}`,
       type: 'treatment-plan',
       sender: 'provider',
       timestamp: 'Sent just now',
     }
+    setSentPlanSections(sections || null)
     setChats(prev => prev.map(c =>
       c.id === selectedChatId ? { ...c, history: [...c.history, msg] } : c
     ))
@@ -1252,40 +1259,48 @@ function App() {
               return (
                 <div key={item.id} className="message-row sent" style={{ alignItems: 'flex-end' }}>
                   <div className="tplan-chat-card">
+
                     {/* Header */}
                     <div className="tplan-chat-card-hd">
                       <div className="tplan-chat-card-icon-wrap">
-                        <FileText size={17} />
+                        <FileText size={16} />
                       </div>
-                      <div className="tplan-chat-card-title">Personalized Treatment Plan</div>
+                      <div className="tplan-chat-card-title">Your Personalized Plan is Ready</div>
                     </div>
 
                     {/* Body */}
                     <p className="tplan-chat-card-body">
-                      Your personalized treatment plan has been prepared by your provider.
-                      This plan outlines your therapy goals, recommended approach, activities,
-                      and next steps designed specifically for your wellness journey.
+                      Your provider has prepared a personalized plan based on your recent consultation.
                     </p>
-                    <p className="tplan-chat-card-note">Please review it before your next session.</p>
+                    <div className="tplan-chat-card-list">
+                      <div className="tplan-chat-card-list-item">📝 Personalized recommendations</div>
+                      <div className="tplan-chat-card-list-item">🎯 Clear next steps</div>
+                      <div className="tplan-chat-card-list-item">📅 Guidance for your upcoming journey</div>
+                      <div className="tplan-chat-card-list-item">📌 A document you can refer to anytime</div>
+                    </div>
+                    <p className="tplan-chat-card-note">Take a few minutes to review it at your convenience.</p>
 
                     {/* CTA */}
                     <button
+                      type="button"
                       className="tplan-chat-card-cta"
-                      onClick={() => setTreatmentPlanOpen(true)}
+                      onClick={() => setSentPlanPreviewOpen(true)}
                     >
-                      View Treatment Plan
+                      View Plan
                     </button>
 
-                    {/* PDF badge */}
+                    {/* PDF attachment badge */}
                     <div className="tplan-chat-card-pdf">
-                      <FileText size={13} />
-                      <div className="tplan-chat-card-pdf-info">
-                        <span className="tplan-chat-card-pdf-label">PDF Attached</span>
-                        <span className="tplan-chat-card-pdf-name">TreatmentPlan.pdf</span>
-                      </div>
+                      <FileText size={12} />
+                      <span className="tplan-chat-card-pdf-name">TreatmentPlan.pdf</span>
                     </div>
+
+                    {/* Footer */}
+                    <div className="tplan-chat-card-footer">
+                      Prepared by your provider&nbsp;•&nbsp;{item.timestamp}
+                    </div>
+
                   </div>
-                  <span className="message-meta">{item.timestamp}</span>
                 </div>
               )
             }
@@ -1926,6 +1941,14 @@ function App() {
         <TreatmentPlanModal
           onClose={() => setTreatmentPlanOpen(false)}
           onSendToClient={handleSendTreatmentPlan}
+        />
+      )}
+
+      {/* PDF-only view — opened from chat card "View Treatment Plan" */}
+      {sentPlanPreviewOpen && sentPlanSections && (
+        <TplanPreviewModal
+          sections={sentPlanSections}
+          onClose={() => setSentPlanPreviewOpen(false)}
         />
       )}
     </div>
