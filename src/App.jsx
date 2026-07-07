@@ -41,7 +41,9 @@ import {
 import ClinicalSnapshot from './ClinicalSnapshot'
 import RecommendedActions from './RecommendedActions'
 import TreatmentPlanModal from './TreatmentPlanModal'
+import TreatmentPlanStudio from './TreatmentPlanStudio'
 import TplanPreviewModal from './TplanPreviewModal'
+import CareAssistant from './CareAssistant'
 import './App.css'
 
 function App() {
@@ -74,6 +76,9 @@ function App() {
   const [selectedAppt, setSelectedAppt] = useState(null) // for viewing appointment card details
   const [videoCallOpen, setVideoCallOpen] = useState(false)
   const [copilotOpen, setCopilotOpen] = useState(false)
+  const [copilotTab, setCopilotTab] = useState('overview')  // 'overview' | 'ask-ai'
+  const [isPremium, setIsPremium] = useState(true) // Premium toggle state
+  const [upsellModalOpen, setUpsellModalOpen] = useState(false) // Premium upsell modal state
   const [copilotLoading, setCopilotLoading] = useState(false)
   const [copilotMsgIndex, setCopilotMsgIndex] = useState(0)
   const [copilotQuery, setCopilotQuery] = useState('')
@@ -335,16 +340,13 @@ function App() {
     if (copilotOpen) {
       setCopilotLoading(true)
       setCopilotMsgIndex(0)
+      setCopilotTab('overview')  // always start on Clinical Snapshot
       setCopilotChat([
-        { 
-          id: 'welcome', 
-          sender: 'ai', 
-          text: `Hello. I have analyzed **${currentChat.name}**'s clinical records. You can review the **AI Summary**, **insights**, and **recommendations** in the Clinical Snapshot on the left, or ask me specific questions here.`, 
+        {
+          id: 'welcome',
+          sender: 'ai',
+          text: `Hello. I've analyzed this client's records.\n\nAsk me anything about this client or use one of the suggested actions below.`,
           time: 'Just now',
-          actions: [
-            { id: 'act-ocd', icon: '📋', title: 'OCD Assessment', reason: "Recommended because the client's responses indicate changing symptom severity.", confidence: 'High', actionText: 'Send Assessment', type: 'ocd' },
-            { id: 'act-yoga', icon: '🧘', title: 'Yoga Program', reason: 'AI believes yoga may help reduce anxiety and improve sleep quality.', confidence: 'High', actionText: 'Recommend to Client', type: 'yoga' }
-          ]
         }
       ])
       
@@ -1743,7 +1745,6 @@ function App() {
 
             <div className="copilot-modal-body">
               {copilotLoading ? (
-                /* STATE 1: CALM, MINIMAL AND ELEGANT AI REASONING SCREEN */
                 <div className="copilot-minimal-analysis-layout">
                   {/* Central glowing gradient orb */}
                   <div className="copilot-minimal-orb-container">
@@ -1766,169 +1767,213 @@ function App() {
                   </div>
                 </div>
               ) : (
-                /* STATE 2: PREMIUM AI CLINICAL INSIGHTS WORKSPACE */
-                <div className="copilot-workspace-layout animate-fadeIn">
-                  {/* LEFT COLUMN: Clinical Snapshot */}
-                  <ClinicalSnapshot
-                    isSummaryExpanded={isSummaryExpanded}
-                    setIsSummaryExpanded={setIsSummaryExpanded}
-                    onCopilotChatSubmit={handleCopilotChatSubmit}
-                  />
+                <div className="copilot-tabbed-layout animate-fadeIn">
 
-                  {/* RIGHT COLUMN: Interactive Claude-style Workspace (62%) */}
-                  <div className="copilot-workspace-right" style={{ position: 'relative' }}>
-                    <div className="copilot-chat-workspace-header">
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                          AI Clinical Assistant
-                        </h4>
-                        <span style={{ fontSize: '0.72rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
-                          Ready
-                        </span>
-                      </div>
+                  {/* ── Tab bar ── */}
+                  <div className="copilot-tabs-bar" role="tablist">
+                    <div className="copilot-tabs-list-wrapper">
+                      <button role="tab" className={`copilot-tab-btn ${copilotTab === 'overview'        ? 'active' : ''}`} onClick={() => setCopilotTab('overview')}>Clinical Snapshot</button>
+                      <button role="tab" className={`copilot-tab-btn ${copilotTab === 'ask-ai'          ? 'active' : ''}`} onClick={() => setCopilotTab('ask-ai')}>Ask AI</button>
+                      <button role="tab" className={`copilot-tab-btn ${copilotTab === 'care-plan'       ? 'active' : ''}`} onClick={() => setCopilotTab('care-plan')}>Care Plan</button>
+                      <button 
+                        role="tab" 
+                        className={`copilot-tab-btn copilot-tab-btn--care-assistant ${copilotTab === 'care-assistant'  ? 'active' : ''}`} 
+                        onClick={() => {
+                          if (isPremium) {
+                            setCopilotTab('care-assistant');
+                          } else {
+                            setUpsellModalOpen(true);
+                          }
+                        }}
+                      >
+                        ✨ Care Assistant
+                      </button>
                     </div>
+                    
+                    {/* Demo/Testing Provider Type toggle */}
+                    <div className="demo-provider-type-toggle">
+                      <span className="demo-toggle-label">Provider Type:</span>
+                      <button 
+                        type="button"
+                        className={`demo-toggle-opt ${!isPremium ? 'active' : ''}`}
+                        onClick={() => setIsPremium(false)}
+                      >
+                        Free
+                      </button>
+                      <button 
+                        type="button"
+                        className={`demo-toggle-opt ${isPremium ? 'active' : ''}`}
+                        onClick={() => setIsPremium(true)}
+                      >
+                        Premium
+                      </button>
+                    </div>
+                  </div>
 
-                    {/* Recommended Actions Container */}
-                    <RecommendedActions
-                      onCopilotChatSubmit={handleCopilotChatSubmit}
-                      onSendRecommendation={handleSendRecommendation}
-                    />
+                  {/* ── CLINICAL SNAPSHOT TAB ── */}
+                  {copilotTab === 'overview' && (
+                    <div className="copilot-tab-panel copilot-overview-panel" role="tabpanel">
+                      <ClinicalSnapshot
+                        isSummaryExpanded={isSummaryExpanded}
+                        setIsSummaryExpanded={setIsSummaryExpanded}
+                        onCopilotChatSubmit={(q) => { setCopilotTab('ask-ai'); handleCopilotChatSubmit(q) }}
+                        fullWidth
+                      >
+                        <RecommendedActions
+                          onCopilotChatSubmit={handleCopilotChatSubmit}
+                          onSendRecommendation={handleSendRecommendation}
+                        />
+                      </ClinicalSnapshot>
+                    </div>
+                  )}
 
-                    {/* Claude-style dialogue Stream */}
-                    <div className="copilot-workspace-chat-log">
-                      {copilotChat.map((msg) => (
-                        <div key={msg.id || msg.text} className={`copilot-bubble-row ${msg.sender}`}>
-                          <div className="copilot-chat-bubble-content">
-                            {msg.sender === 'ai' ? (
-                              <div className="bubble-markdown-rendered">
-                                {renderMarkdown(msg.text)}
+                  {/* ── ASK AI TAB ── */}
+                  {copilotTab === 'ask-ai' && (
+                    <div className="copilot-tab-panel copilot-ask-ai-panel" role="tabpanel">
+
+                      {/* Chat log */}
+                      <div className="copilot-workspace-chat-log">
+                        {copilotChat.map((msg) => (
+                          <div key={msg.id || msg.text} className={`copilot-bubble-row ${msg.sender}`}>
+                            <div className="copilot-chat-bubble-content">
+                              {msg.sender === 'ai' ? (
+                                <div className="bubble-markdown-rendered">
+                                  {renderMarkdown(msg.text)}
+                                </div>
+                              ) : (
+                                <div className="bubble-text">{msg.text}</div>
+                              )}
+                              <span className="bubble-time-stamp">{msg.time}</span>
+                            </div>
+                          </div>
+                        ))}
+                        {isCopilotThinking && (
+                          <div className="copilot-bubble-row ai thinking">
+                            <div className="copilot-chat-bubble-content">
+                              <div className="claude-typing-indicator">
+                                <span className="dot" />
+                                <span className="dot" />
+                                <span className="dot" />
                               </div>
-                            ) : (
-                              <div className="bubble-text">{msg.text}</div>
-                            )}
-                            <span className="bubble-time-stamp">{msg.time}</span>
+                            </div>
+                          </div>
+                        )}
+                        <div ref={copilotEndRef} />
+                      </div>
+
+                      {/* Chips + input */}
+                      <div className="copilot-workspace-input-controls">
+                        {/* Suggested prompt chips */}
+                        <div className="suggested-prompts-row-wrapper">
+                          <div className="suggested-prompts-scroller">
+                            <button
+                              className="suggested-prompt-chip suggested-prompt-chip--accent"
+                              onClick={() => setTreatmentPlanOpen(true)}
+                            >
+                              ✨ Generate Treatment Plan
+                            </button>
+                            {[
+                              'Generate SOAP Notes',
+                              'Prepare Session Plan',
+                              'Summarize Client',
+                              'Draft Follow-up',
+                              'Recommend Activities',
+                            ].map((chipText) => (
+                              <button
+                                key={chipText}
+                                className="suggested-prompt-chip"
+                                onClick={() => handleCopilotQuickAction(chipText)}
+                              >
+                                {chipText}
+                              </button>
+                            ))}
                           </div>
                         </div>
-                      ))}
-                      
-                      {isCopilotThinking && (
-                        <div className="copilot-bubble-row ai thinking">
-                          <div className="copilot-chat-bubble-content">
-                            <div className="claude-typing-indicator">
-                              <span className="dot" />
-                              <span className="dot" />
-                              <span className="dot" />
+
+                        {/* Input bar */}
+                        <div className="copilot-chat-input-bar">
+                          <button className="input-accessory-btn" title="Attach file">
+                            <Paperclip size={16} />
+                          </button>
+                          <textarea
+                            placeholder="Ask anything about this client..."
+                            className="copilot-chat-textbox"
+                            rows={1}
+                            value={copilotQuery}
+                            onChange={(e) => setCopilotQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                handleCopilotChatSubmit(copilotQuery)
+                              }
+                            }}
+                          />
+                          <button className="input-accessory-btn" style={{ marginRight: 4 }} title="Voice input">
+                            <Mic size={16} />
+                          </button>
+                          <button
+                            className="copilot-send-trigger-btn"
+                            disabled={!copilotQuery.trim()}
+                            onClick={() => handleCopilotChatSubmit(copilotQuery)}
+                            title="Send prompt"
+                          >
+                            <Send size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Confirmation overlay */}
+                      {confirmAction && (
+                        <div className="action-confirm-overlay">
+                          <div className="action-confirm-card">
+                            <h4 className="action-confirm-title">
+                              {confirmAction.title === 'Follow-up Message' ? 'Send Follow-up Message?' : `Send ${confirmAction.title}?`}
+                            </h4>
+                            <p className="action-confirm-desc">The client will receive:</p>
+                            <div className="action-confirm-message-box">
+                              {confirmAction.type === 'yoga' && '"Your therapist has recommended completing a Yoga Program to help reduce anxiety and improve sleep."'}
+                              {confirmAction.type === 'ocd' && '"Your therapist has recommended completing an updated OCD Assessment before your next session."'}
+                              {confirmAction.type === 'anxiety' && '"Your therapist has recommended completing an updated Anxiety Assessment before your next session."'}
+                              {confirmAction.type === 'psych' && '"Your therapist has recommended a Psychiatry Consultation medication review."'}
+                              {confirmAction.type === 'homework' && '"Your therapist has assigned today\'s CBT Worksheet homework activity."'}
+                              {confirmAction.type === 'followup' && confirmAction.previewText}
+                            </div>
+                            <div className="action-confirm-buttons">
+                              <button className="confirm-btn cancel" onClick={() => setConfirmAction(null)}>Cancel</button>
+                              <button className="confirm-btn send" onClick={() => handleExecuteAction(confirmAction)}>Send</button>
                             </div>
                           </div>
                         </div>
                       )}
-                      <div ref={copilotEndRef} />
-                    </div>
 
-                    {/* Quick Action Suggested Prompt Row & Rounded Input Area */}
-                    <div className="copilot-workspace-input-controls">
-                      {/* ── Generate Treatment Plan primary CTA ── */}
-                      <div className="copilot-tplan-cta-wrapper">
-                        <button
-                          className="copilot-tplan-cta-btn"
-                          onClick={() => setTreatmentPlanOpen(true)}
-                        >
-                          <Sparkles size={15} className="copilot-tplan-cta-icon" />
-                          <div className="copilot-tplan-cta-text">
-                            <span className="copilot-tplan-cta-label">Generate Treatment Plan</span>
-                            <span className="copilot-tplan-cta-helper">Create an AI-generated personalized therapy roadmap for this client.</span>
-                          </div>
-                        </button>
-                      </div>
-
-                      {/* Suggested prompt chips row */}
-                      <div className="suggested-prompts-row-wrapper">
-                        <div className="suggested-prompts-scroller">
-                          {[
-                            'Generate SOAP Notes',
-                            'Prepare Session Plan',
-                            'Summarize Client',
-                            'Recommend Activities',
-                            'Draft Follow-up'
-                          ].map((chipText) => (
-                            <button 
-                              key={chipText}
-                              className="suggested-prompt-chip"
-                              onClick={() => handleCopilotQuickAction(chipText)}
-                            >
-                              {chipText}
-                            </button>
-                          ))}
+                      {/* Success toast */}
+                      {successToast && (
+                        <div className="action-success-toast">
+                          <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>✓</span>
+                          <span>{successToast}</span>
                         </div>
-                      </div>
+                      )}
 
-                      {/* Large rounded input bar (ChatGPT/Claude styled) */}
-                      <div className="copilot-chat-input-bar">
-                        <button className="input-accessory-btn" title="Attach file">
-                          <Paperclip size={16} />
-                        </button>
-                        <textarea
-                          placeholder="Ask anything about this client..."
-                          className="copilot-chat-textbox"
-                          rows={1}
-                          value={copilotQuery}
-                          onChange={(e) => setCopilotQuery(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault()
-                              handleCopilotChatSubmit(copilotQuery)
-                            }
-                          }}
-                        />
-                        <button className="input-accessory-btn" style={{ marginRight: 4 }} title="Voice input">
-                          <Mic size={16} />
-                        </button>
-                        <button 
-                          className="copilot-send-trigger-btn"
-                          disabled={!copilotQuery.trim()}
-                          onClick={() => handleCopilotChatSubmit(copilotQuery)}
-                          title="Send prompt"
-                        >
-                          <Send size={14} />
-                        </button>
-                      </div>
                     </div>
+                  )}
 
-                    {/* Confirmation Overlay Dialog */}
-                    {confirmAction && (
-                      <div className="action-confirm-overlay">
-                        <div className="action-confirm-card">
-                          <h4 className="action-confirm-title">
-                            {confirmAction.title === 'Follow-up Message' ? 'Send Follow-up Message?' : `Send ${confirmAction.title}?`}
-                          </h4>
-                          <p className="action-confirm-desc">
-                            The client will receive:
-                          </p>
-                          <div className="action-confirm-message-box">
-                            {confirmAction.type === 'yoga' && '"Your therapist has recommended completing a Yoga Program to help reduce anxiety and improve sleep."'}
-                            {confirmAction.type === 'ocd' && '"Your therapist has recommended completing an updated OCD Assessment before your next session."'}
-                            {confirmAction.type === 'anxiety' && '"Your therapist has recommended completing an updated Anxiety Assessment before your next session."'}
-                            {confirmAction.type === 'psych' && '"Your therapist has recommended a Psychiatry Consultation medication review."'}
-                            {confirmAction.type === 'homework' && '"Your therapist has assigned today\'s CBT Worksheet homework activity."'}
-                            {confirmAction.type === 'followup' && confirmAction.previewText}
-                          </div>
-                          <div className="action-confirm-buttons">
-                            <button className="confirm-btn cancel" onClick={() => setConfirmAction(null)}>Cancel</button>
-                            <button className="confirm-btn send" onClick={() => handleExecuteAction(confirmAction)}>Send</button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                  {/* ── CARE PLAN TAB ── */}
+                  {copilotTab === 'care-plan' && (
+                    <div className="copilot-tab-panel copilot-care-plan-panel" role="tabpanel">
+                      <TreatmentPlanStudio
+                        onClose={() => setCopilotTab('overview')}
+                        onSendToClient={handleSendTreatmentPlan}
+                      />
+                    </div>
+                  )}
 
-                    {/* Success notification slide toast */}
-                    {successToast && (
-                      <div className="action-success-toast">
-                        <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>✓</span>
-                        <span>{successToast}</span>
-                      </div>
-                    )}
-                  </div>
+                  {/* ── CARE ASSISTANT TAB ── */}
+                  {copilotTab === 'care-assistant' && (
+                    <div className="copilot-tab-panel copilot-care-assistant-panel" role="tabpanel">
+                      <CareAssistant clientName={currentChat?.name} />
+                    </div>
+                  )}
+
                 </div>
               )}
             </div>
@@ -1950,6 +1995,85 @@ function App() {
           sections={sentPlanSections}
           onClose={() => setSentPlanPreviewOpen(false)}
         />
+      )}
+
+      {/* PREMIUM UPSELL MODAL */}
+      {upsellModalOpen && (
+        <div className="ca-upsell-modal-overlay" onClick={() => setUpsellModalOpen(false)}>
+          <div className="ca-upsell-modal-dialog" onClick={e => e.stopPropagation()}>
+            <button className="ca-upsell-close-btn" onClick={() => setUpsellModalOpen(false)}>
+              <X size={18} />
+            </button>
+            
+            {/* Top illustration orb */}
+            <div className="ca-upsell-icon-header">
+              <div className="ca-upsell-sparkle-orb">
+                <Sparkles size={28} className="ca-upsell-sparkle-icon" />
+              </div>
+            </div>
+
+            {/* Title + Premium badge */}
+            <div className="ca-upsell-title-row">
+              <h2 className="ca-upsell-title">Meet Care Assistant</h2>
+              <span className="ca-upsell-premium-badge">PREMIUM</span>
+            </div>
+            <p className="ca-upsell-subtitle">
+              Your AI teammate that keeps supporting clients between sessions.
+            </p>
+
+            {/* Benefit Cards (4) */}
+            <div className="ca-upsell-benefits-grid">
+              <div className="ca-upsell-benefit-card">
+                <span className="ca-upsell-benefit-emoji">💙</span>
+                <div className="ca-upsell-benefit-text">
+                  <div className="ca-upsell-benefit-title">Stay connected</div>
+                  <div className="ca-upsell-benefit-desc">Automatic mood check-ins and follow-ups.</div>
+                </div>
+              </div>
+
+              <div className="ca-upsell-benefit-card">
+                <span className="ca-upsell-benefit-emoji">⏰</span>
+                <div className="ca-upsell-benefit-text">
+                  <div className="ca-upsell-benefit-title">Save hours</div>
+                  <div className="ca-upsell-benefit-desc">Automate reminders and routine communication.</div>
+                </div>
+              </div>
+
+              <div className="ca-upsell-benefit-card">
+                <span className="ca-upsell-benefit-emoji">📈</span>
+                <div className="ca-upsell-benefit-text">
+                  <div className="ca-upsell-benefit-title">Improve retention</div>
+                  <div className="ca-upsell-benefit-desc">Never miss renewals or payment follow-ups.</div>
+                </div>
+              </div>
+
+              <div className="ca-upsell-benefit-card">
+                <span className="ca-upsell-benefit-emoji">🚨</span>
+                <div className="ca-upsell-benefit-text">
+                  <div className="ca-upsell-benefit-title">Stay informed</div>
+                  <div className="ca-upsell-benefit-desc">Get notified when important client events need your attention.</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Proof */}
+            <div className="ca-upsell-social-proof">
+              Trusted by providers to automate routine care while improving client engagement.
+            </div>
+
+            {/* Action buttons */}
+            <div className="ca-upsell-actions-section">
+              <button className="ca-upsell-btn-primary" onClick={() => { setIsPremium(true); setUpsellModalOpen(false); setCopilotTab('care-assistant'); }}>
+                Unlock Premium
+              </button>
+              <button className="ca-upsell-btn-secondary" onClick={() => setUpsellModalOpen(false)}>
+                Maybe Later
+              </button>
+              <div className="ca-upsell-footer-note">Included in Premium Provider plans.</div>
+            </div>
+
+          </div>
+        </div>
       )}
     </div>
   )

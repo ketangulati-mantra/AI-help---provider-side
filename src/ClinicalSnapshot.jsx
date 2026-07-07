@@ -9,6 +9,8 @@ function ClinicalSnapshot({
   isSummaryExpanded,
   setIsSummaryExpanded,
   onCopilotChatSubmit,
+  fullWidth,
+  children,
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [panelWidth, setPanelWidth] = useState(SNAPSHOT_DEFAULT_WIDTH)
@@ -83,27 +85,30 @@ function ClinicalSnapshot({
     <>
       <div
         className="copilot-workspace-left expanded"
-        style={{ width: panelWidth, minWidth: panelWidth }}
+        style={fullWidth ? {} : { width: panelWidth, minWidth: panelWidth }}
       >
-        {/* STICKY HEADER */}
-        <div className="snapshot-expanded-header snapshot-sticky-header">
+        {/* STICKY HEADER — hidden in fullWidth/tab mode */}
+        <div className={`snapshot-expanded-header snapshot-sticky-header${fullWidth ? ' snapshot-sticky-header--hidden' : ''}`}>
           <span className="snapshot-expanded-title">Clinical Snapshot</span>
-          <button
-            className="snapshot-collapse-btn"
-            onClick={() => setIsCollapsed(true)}
-            aria-label="Collapse Clinical Snapshot"
-          >
-            <ChevronLeft size={14} />
-          </button>
+          {!fullWidth && (
+            <button
+              className="snapshot-collapse-btn"
+              onClick={() => setIsCollapsed(true)}
+              aria-label="Collapse Clinical Snapshot"
+            >
+              <ChevronLeft size={14} />
+            </button>
+          )}
         </div>
 
         {/* SCROLLABLE CONTENT */}
         <div className="snapshot-scrollable-content">
-          {/* AI SUMMARY CARD */}
-          <div className="workspace-summary-card">
-            <h4 className="workspace-section-title">
-              Summary
-            </h4>
+
+          {/* ── AI SUMMARY CARD ── */}
+          <div className="snapshot-section-card snapshot-section-card--blue">
+            <div className="snapshot-section-hd">
+              <span className="snapshot-section-title">AI Summary</span>
+            </div>
             <div className={`summary-paragraph-text ${isSummaryExpanded ? 'expanded' : 'collapsed'}`}>
               The client has remained engaged with therapy and has shown gradual improvement over the past few weeks. <span className="summary-highlight">Anxiety before work</span> appears to spike, while mood has remained relatively stable. <span className="summary-highlight">Sleep consistency is improving</span>, though <span className="summary-highlight">activity completion is declining</span> slightly. Based on recent AI conversations, the client responds well to structured guidance and mindfulness exercises.
               {isSummaryExpanded ? (
@@ -124,17 +129,17 @@ function ClinicalSnapshot({
             </div>
           </div>
 
-          {/* KEY INSIGHTS LIST */}
-          <div className="workspace-snapshot-section">
-            <h4 className="workspace-section-title" style={{ marginBottom: 10 }}>
-              Key Insights
-            </h4>
+          {/* ── KEY INSIGHTS CARD ── */}
+          <div className="snapshot-section-card snapshot-section-card--neutral">
+            <div className="snapshot-section-hd">
+              <span className="snapshot-section-title">Key Insights</span>
+              <span className="snapshot-section-badge">{insights.length}</span>
+            </div>
             <div className="insights-snapshot-list compact">
               {insights.map((item, idx) => {
                 const IconComp = item.Icon
                 return (
                   <div key={idx} className="ik-card">
-                    {/* Icon + text — occupies top portion of fixed-height card */}
                     <div className="ik-card-body">
                       <span className="ik-icon">
                         <IconComp size={14} />
@@ -144,8 +149,6 @@ function ClinicalSnapshot({
                         <div className="ik-desc">{item.text}</div>
                       </div>
                     </div>
-
-                    {/* Overlay pill — position:absolute, never in layout flow */}
                     <button
                       className="ik-pill"
                       onClick={() => onCopilotChatSubmit(`Explain the insight: "${item.title} - ${item.text}"`)}
@@ -157,17 +160,22 @@ function ClinicalSnapshot({
               })}
             </div>
           </div>
+
+          {children}
+
         </div>
       </div>
 
-      {/* DRAGGABLE DIVIDER */}
-      <div
-        className="snapshot-resize-divider"
-        onMouseDown={handleDividerMouseDown}
-        title="Drag to resize"
-      >
-        <div className="snapshot-resize-divider-line" />
-      </div>
+      {/* DRAGGABLE DIVIDER — hidden in fullWidth/tab mode */}
+      {!fullWidth && (
+        <div
+          className="snapshot-resize-divider"
+          onMouseDown={handleDividerMouseDown}
+          title="Drag to resize"
+        >
+          <div className="snapshot-resize-divider-line" />
+        </div>
+      )}
     </>
   )
 }
