@@ -341,8 +341,8 @@ function CareAssistantSkeleton() {
     <div className="ca-skeleton-container">
       {/* Overview Skeleton */}
       <div className="ca-settings-section">
-        <div className="ca-skeleton-title animate-pulse" />
-        <div className="ca-skeleton-desc animate-pulse" />
+        <h3 className="ca-settings-section-title">📊 Assistant Overview</h3>
+        <p className="ca-settings-section-desc">A quick summary of your AI assistant's activity for this client.</p>
         <div className="ca-settings-overview-grid">
           {[1, 2, 3].map(i => (
             <div key={i} className="ca-settings-overview-card ca-skeleton-card">
@@ -356,8 +356,8 @@ function CareAssistantSkeleton() {
 
       {/* Active Automations Skeleton */}
       <div className="ca-settings-section">
-        <div className="ca-skeleton-title animate-pulse" />
-        <div className="ca-skeleton-desc animate-pulse" />
+        <h3 className="ca-settings-section-title">⚡ Active Automations</h3>
+        <p className="ca-settings-section-desc">Choose which Mantra AI automations should run for this client.</p>
         <div className="ca-settings-list">
           {[1, 2, 3].map(i => (
             <div key={i} className="ca-settings-row ca-skeleton-row" style={{ minHeight: '66px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -459,7 +459,7 @@ function CareAssistant({ clientName }) {
             <div className="ca-loaded-content">
               {/* OVERVIEW */}
               <div className="ca-settings-section">
-                <h3 className="ca-settings-section-title">Assistant Overview</h3>
+                <h3 className="ca-settings-section-title">📊 Assistant Overview</h3>
                 <p className="ca-settings-section-desc">A quick summary of your AI assistant's activity for this client.</p>
                 
                 <div className="ca-settings-overview-grid">
@@ -483,7 +483,7 @@ function CareAssistant({ clientName }) {
 
               {/* ACTIVE AUTOMATIONS */}
               <div className="ca-settings-section">
-                <h3 className="ca-settings-section-title">Active Automations</h3>
+                <h3 className="ca-settings-section-title">⚡ Active Automations</h3>
                 <p className="ca-settings-section-desc">Choose which Mantra AI automations should run for this client.</p>
 
                 <div className="ca-settings-list">
@@ -529,7 +529,7 @@ function CareAssistant({ clientName }) {
 
               {/* AI COACH CONVERSATIONS */}
               <div className="ca-settings-section">
-                <h3 className="ca-settings-section-title">AI Coach Conversations</h3>
+                <h3 className="ca-settings-section-title">💬 AI Coach Conversations</h3>
                 <p className="ca-settings-section-desc">Review conversations between this client and Mantra AI coaches.</p>
 
                 <div className="ca-settings-list">

@@ -12858,3 +12858,104 @@
   50% { opacity: 0.35; }
   100% { opacity: 0.65; }
 }
+
+/* --- CARE ASSISTANT DASHBOARD LAYOUT & WHITE SPACE IMPROVEMENTS --- */
+.ca-settings-layout {
+  padding: 32px 40px !important;
+  max-width: 1080px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important; /* Managed by section margin-bottom */
+}
+
+/* Treat every major block as its own section with generous spacing */
+.ca-settings-section {
+  margin-bottom: 48px !important; /* 8-point spacing: 48px */
+  padding-top: 32px !important;   /* 8-point spacing: 32px */
+  padding-bottom: 32px !important;/* 8-point spacing: 32px */
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.ca-settings-section:last-of-type {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Section Title */
+.ca-settings-section-title {
+  font-size: 1.2rem !important;
+  font-weight: 700 !important;
+  margin: 0 0 16px 0 !important; /* 16px between title and description */
+  color: var(--text-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Section Description */
+.ca-settings-section-desc {
+  font-size: 0.82rem !important;
+  color: var(--text-secondary) !important;
+  margin: 0 0 24px 0 !important; /* 24px between description and content (8-point system) */
+  line-height: 1.45 !important;
+}
+
+/* Overview grid padding/margins */
+.ca-settings-overview-grid {
+  gap: 24px !important; /* 24px spacing between cards */
+  margin-top: 0 !important;
+}
+
+/* Overview card layout */
+.ca-settings-overview-card {
+  padding: 24px !important; /* 24px inner padding */
+  border-radius: 12px !important;
+  border: 1px solid var(--border-color) !important;
+  background: var(--bg-secondary) !important;
+}
+
+/* Active automations / Coach list */
+.ca-settings-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important; /* 12px between cards as requested */
+  margin-top: 0 !important;
+}
+
+/* Automation/Coach list row card */
+.ca-settings-row {
+  padding: 16px 24px !important; /* 16px top/bottom, 24px left/right (8-point spacing) */
+  border-radius: 12px !important;
+  border: 1px solid var(--border-color) !important;
+  background: var(--bg-secondary) !important;
+  margin-bottom: 0 !important; /* gap is handled by parent container flex gap */
+}
+
+/* Header style tweaks for perfect alignment */
+.ca-settings-header {
+  padding-bottom: 24px !important; /* 24px bottom padding */
+  margin-bottom: 16px !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.ca-settings-header-top {
+  align-items: center !important;
+}
+
+.ca-settings-title {
+  font-size: 1.6rem !important;
+  font-weight: 800 !important;
+}
+
+.ca-settings-subtitle {
+  font-size: 0.9rem !important;
+  margin-top: 8px !important;
+}
+
+.ca-settings-header-helper {
+  font-size: 0.8rem !important;
+  margin-top: 12px !important;
+}
