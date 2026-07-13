@@ -1,4 +1,4 @@
-﻿/* App Layout Main Container */
+/* App Layout Main Container */
 .app-container {
     display: flex;
     width: 100vw;
@@ -1413,10 +1413,9 @@
 }
 
 .copilot-modal {
-    width: 80%;
-    height: 90%;
-    max-width: 1200px;
-    max-height: 800px;
+    width: min(1280px, 92vw);
+    height: min(900px, 90vh);
+    max-width: calc(min(900px, 90vh) * 1.6);
     background-color: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: 24px;
@@ -1438,6 +1437,7 @@
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(12px);
     z-index: 10;
+    flex-shrink: 0;
 }
 
 .dark-theme .copilot-modal-header.glassmorphism {
@@ -1457,7 +1457,7 @@
 
 .copilot-modal-body {
     flex-grow: 1;
-    overflow-y: auto;
+    overflow: hidden;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -10375,7 +10375,7 @@
 /* -- Tab panels ---------------------------------------------- */
 .copilot-tab-panel {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
@@ -12958,4 +12958,35 @@
 .ca-settings-header-helper {
   font-size: 0.8rem !important;
   margin-top: 12px !important;
+}
+
+/* --- PREMIUM LOCK SVG AND UPSELL FEATURES LIST --- */
+.ca-lock-svg {
+  margin-left: 6px;
+  vertical-align: -1px;
+}
+
+.ca-premium-features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.ca-premium-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.ca-premium-check {
+  color: #f59e0b; /* Gold checkmark */
+  flex-shrink: 0;
 }

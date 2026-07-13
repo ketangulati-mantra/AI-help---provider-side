@@ -336,7 +336,7 @@ function EditScheduleModal({ automation, onSave, onClose }) {
 }
 
 // Skeleton pulse animation component
-function CareAssistantSkeleton() {
+function AutomationsSkeleton() {
   return (
     <div className="ca-skeleton-container">
       {/* Overview Skeleton */}
@@ -374,7 +374,7 @@ function CareAssistantSkeleton() {
   )
 }
 
-function CareAssistant({ clientName }) {
+function Automations({ clientName }) {
   const [enabled, setEnabled] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [viewingCoach, setViewingCoach] = useState(null)
@@ -435,7 +435,7 @@ function CareAssistant({ clientName }) {
       <div className="ca-settings-header">
         <div className="ca-settings-header-top">
           <div className="ca-settings-title-group">
-            <h2 className="ca-settings-title">Care Assistant</h2>
+            <h2 className="ca-settings-title">Automations</h2>
             <p className="ca-settings-subtitle">Manage AI follow-ups and review AI coach conversations for this client.</p>
           </div>
           <div className="ca-settings-toggle-container">
@@ -454,7 +454,7 @@ function CareAssistant({ clientName }) {
       <div className={`ca-lower-content-wrapper ${enabled ? 'expanded' : 'collapsed'}`}>
         <div className={`ca-lower-content-inner ${isLoading ? 'loading' : 'loaded'}`}>
           {isLoading ? (
-            <CareAssistantSkeleton />
+            <AutomationsSkeleton />
           ) : (
             <div className="ca-loaded-content">
               {/* OVERVIEW */}
@@ -476,7 +476,7 @@ function CareAssistant({ clientName }) {
                   <div className="ca-settings-overview-card">
                     <span className="ca-overview-label">Assistant Status</span>
                     <span className="ca-overview-val ca-overview-val--status">{assistantStatusText}</span>
-                    <span className="ca-overview-sub">Status of overall Care Assistant system.</span>
+                    <span className="ca-overview-sub">Status of overall Automations system.</span>
                   </div>
                 </div>
               </div>
@@ -578,4 +578,4 @@ function CareAssistant({ clientName }) {
   )
 }
 
-export default CareAssistant
+export default Automations

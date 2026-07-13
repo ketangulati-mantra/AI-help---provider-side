@@ -5,7 +5,7 @@ const SNAPSHOT_MIN_WIDTH = 240
 const SNAPSHOT_MAX_WIDTH = 380
 const SNAPSHOT_DEFAULT_WIDTH = 300
 
-function ClinicalSnapshot({
+function AISummary({
   isSummaryExpanded,
   setIsSummaryExpanded,
   onCopilotChatSubmit,
@@ -69,7 +69,7 @@ function ClinicalSnapshot({
             <button
               className="collapsed-expand-btn"
               onClick={() => setIsCollapsed(false)}
-              aria-label="Expand Clinical Snapshot"
+              aria-label="Expand AI Summary"
             >
               <ChevronRight size={14} />
             </button>
@@ -89,12 +89,12 @@ function ClinicalSnapshot({
       >
         {/* STICKY HEADER — hidden in fullWidth/tab mode */}
         <div className={`snapshot-expanded-header snapshot-sticky-header${fullWidth ? ' snapshot-sticky-header--hidden' : ''}`}>
-          <span className="snapshot-expanded-title">Clinical Snapshot</span>
+          <span className="snapshot-expanded-title">AI Summary</span>
           {!fullWidth && (
             <button
               className="snapshot-collapse-btn"
               onClick={() => setIsCollapsed(true)}
-              aria-label="Collapse Clinical Snapshot"
+              aria-label="Collapse AI Summary"
             >
               <ChevronLeft size={14} />
             </button>
@@ -180,4 +180,4 @@ function ClinicalSnapshot({
   )
 }
 
-export default ClinicalSnapshot
+export default AISummary
