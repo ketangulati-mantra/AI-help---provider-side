@@ -43,22 +43,9 @@ import RecommendedActions from './RecommendedActions'
 import TreatmentPlanModal from './TreatmentPlanModal'
 import TreatmentPlanStudio from './TreatmentPlanStudio'
 import TplanPreviewModal from './TplanPreviewModal'
-import Automations from './Automations'
+import CareAssistant, { DEFAULT_AUTOMATIONS } from './CareAssistant'
+import CareAssistantPopover from './components/CareAssistantPopover'
 import './App.css'
-
-const LockIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="ca-lock-svg" aria-label="Locked" role="img">
-    <title>Locked</title>
-    <defs>
-      <linearGradient id="ca-lock-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#fbbf24" />
-        <stop offset="100%" stopColor="#d97706" />
-      </linearGradient>
-    </defs>
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="url(#ca-lock-grad)" fill="none" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="url(#ca-lock-grad)" fill="none" />
-  </svg>
-)
 
 function App() {
   // Theme state
@@ -90,14 +77,44 @@ function App() {
   const [selectedAppt, setSelectedAppt] = useState(null) // for viewing appointment card details
   const [videoCallOpen, setVideoCallOpen] = useState(false)
   const [copilotOpen, setCopilotOpen] = useState(false)
-  const [copilotTab, setCopilotTab] = useState('ai-summary')  // 'ai-summary' | 'automations' | 'ask-ai' | 'treatment-plans'
+
+  // State for UX Mode & Automations
+  const [uxMode, setUxMode] = useState('aichat')
+  const [automations, setAutomations] = useState([
+    { id: 1, name: 'Medication Reminder', status: 'Active', frequency: 'Daily · 8:00 AM', schedule: 'Daily · 8:00 AM' },
+    { id: 2, name: 'Daily Mood Check-in', status: 'Active', frequency: 'Every evening · 8:00 PM', schedule: 'Every evening · 8:00 PM' },
+    { id: 3, name: 'Session Reminder', status: 'Off', frequency: 'Daily · 8:00 AM', schedule: 'Daily · 8:00 AM' },
+    { id: 4, name: 'Payment & Renewal Reminder', status: 'Off', frequency: 'Daily · 8:00 AM', schedule: 'Daily · 8:00 AM' },
+  ])
+
+  const handleUpdateAutomation = (updatedAuto) => {
+    setAutomations(prev => prev.map(a => a.id === updatedAuto.id ? updatedAuto : a))
+  }
+
+  const handleToggleAutomationStatus = (id, newStatus) => {
+    setAutomations(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a))
+  }
+
+
+  
+
+  
+
+  
+  const [copilotTab, setCopilotTab] = useState('ask-ai')  // 'overview' | 'ask-ai'
   const [isPremium, setIsPremium] = useState(true) // Premium toggle state
   const [upsellModalOpen, setUpsellModalOpen] = useState(false) // Premium upsell modal state
-  const [pendingTab, setPendingTab] = useState(null) // Target tab clicked by Free user
   const [copilotLoading, setCopilotLoading] = useState(false)
   const [copilotMsgIndex, setCopilotMsgIndex] = useState(0)
   const [copilotQuery, setCopilotQuery] = useState('')
-  const [copilotChat, setCopilotChat] = useState([])
+  const [copilotChat, setCopilotChat] = useState([
+    {
+      id: 'welcome',
+      sender: 'ai',
+      text: "Hello. I've analyzed this client's records.\n\nAsk me anything about this client or use one of the suggested actions below.",
+      time: 'Just now',
+    }
+  ])
   const [isCopilotThinking, setIsCopilotThinking] = useState(false)
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false)
   const [confirmAction, setConfirmAction] = useState(null)
@@ -134,7 +151,7 @@ function App() {
   // Message Typing State
   const [typedMessage, setTypedMessage] = useState('')
   const [attachedFile, setAttachedFile] = useState(null)
-
+  
   // File upload input ref
   const fileInputRef = useRef(null)
   const messagesEndRef = useRef(null)
@@ -353,40 +370,24 @@ function App() {
   // Trigger AI Copilot loading message rotation
   useEffect(() => {
     if (copilotOpen) {
-      setCopilotLoading(true)
+      setCopilotLoading(false)
       setCopilotMsgIndex(0)
-      setCopilotTab('ai-summary')  // always start on AI Summary
-      setCopilotChat([
+      if (!copilotTab) {
+        setCopilotTab('ask-ai')
+      }
+      setCopilotChat(prev => (prev && prev.length > 0) ? prev : [
         {
           id: 'welcome',
           sender: 'ai',
-          text: `Hello. I've analyzed this client's records.\n\nAsk me anything about this client or use one of the suggested actions below.`,
+          text: "Hello. I've analyzed this client's records.\n\nAsk me anything about this client or use one of the suggested actions below.",
           time: 'Just now',
         }
       ])
-
-      const interval = setInterval(() => {
-        setCopilotMsgIndex(prev => {
-          if (prev < copilotMessages.length - 1) {
-            return prev + 1
-          } else {
-            clearInterval(interval)
-            setTimeout(() => {
-              setCopilotLoading(false)
-            }, 1000)
-            return prev
-          }
-        })
-      }, 1000)
-
-      return () => {
-        clearInterval(interval)
-      }
     }
   }, [copilotOpen])
 
   const copilotEndRef = useRef(null)
-
+  
   useEffect(() => {
     copilotEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [copilotChat, isCopilotThinking])
@@ -464,20 +465,20 @@ function App() {
     let tableHeaders = []
     let tableRows = []
     let elements = []
-
+    
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim()
-
+      
       // Table parsing
       if (line.startsWith('|')) {
         insideTable = true
         const cols = line.split('|').map(c => c.trim()).filter((c, idx, arr) => idx > 0 && idx < arr.length - 1)
-
+        
         // Skip separator line e.g. | :--- | :--- |
         if (line.includes(':---') || line.includes('---:')) {
           continue
         }
-
+        
         if (tableHeaders.length === 0) {
           tableHeaders = cols
         } else {
@@ -508,18 +509,18 @@ function App() {
         tableHeaders = []
         tableRows = []
       }
-
+      
       // Empty line
       if (line === '') {
         continue
       }
-
+      
       // Blockquote
       if (line.startsWith('>')) {
         elements.push(<blockquote key={i} className="md-blockquote">{parseInlineStyles(line.slice(1).trim())}</blockquote>)
         continue
       }
-
+      
       // Headers
       if (line.startsWith('###')) {
         elements.push(<h5 key={i} className="md-h5">{parseInlineStyles(line.slice(3).trim())}</h5>)
@@ -529,24 +530,24 @@ function App() {
         elements.push(<h4 key={i} className="md-h4">{parseInlineStyles(line.slice(2).trim())}</h4>)
         continue
       }
-
+      
       // Unordered list
       if (line.startsWith('*')) {
         elements.push(<li key={i} className="md-li">{parseInlineStyles(line.slice(1).trim())}</li>)
         continue
       }
-
+      
       // Ordered list
       if (/^\d+\./.test(line)) {
         const cleanLine = line.replace(/^\d+\./, '').trim()
         elements.push(<li key={i} className="md-ol-li">{parseInlineStyles(cleanLine)}</li>)
         continue
       }
-
+      
       // Regular paragraph
       elements.push(<p key={i} className="md-p">{parseInlineStyles(line)}</p>)
     }
-
+    
     // In case table was at the end of the text
     if (insideTable && tableHeaders.length > 0) {
       elements.push(
@@ -568,10 +569,10 @@ function App() {
         </div>
       )
     }
-
+    
     return elements
   }
-
+  
   // Parse inline bold styles e.g. **bold**
   const parseInlineStyles = (str) => {
     const parts = str.split('**')
@@ -589,11 +590,11 @@ function App() {
     let currentText = ''
     const words = fullText.split(' ')
     let wordIndex = 0
-
+    
     const streamMsgId = `stream-${Date.now()}`
     const initialMsg = { id: streamMsgId, sender: 'ai', text: '', time: 'Just now', actions }
     setCopilotChat(prev => [...prev, initialMsg])
-
+    
     const interval = setInterval(() => {
       if (wordIndex < words.length) {
         currentText += (wordIndex === 0 ? '' : ' ') + words[wordIndex]
@@ -619,7 +620,7 @@ function App() {
       text: `📋 Action Completed: Sent "${action.title}" to ${currentChat.name}'s feed.`,
       timestamp: getCurrentTimestamp()
     }
-
+    
     setChats(prevChats => prevChats.map(c => {
       if (c.id === selectedChatId) {
         return {
@@ -636,7 +637,7 @@ function App() {
     }, 2500)
 
     setConfirmAction(null)
-
+    
     setIsCopilotThinking(true)
     setTimeout(() => {
       const followUpText = `I've sent the ${action.title} to the client. I'll also monitor the results and notify you if any significant changes are detected.`
@@ -653,7 +654,7 @@ function App() {
       text: `📋 Copilot Action: Sent recommendation for "${title}" to ${currentChat.name}`,
       timestamp: getCurrentTimestamp()
     }
-
+    
     setChats(prevChats => prevChats.map(c => {
       if (c.id === selectedChatId) {
         return {
@@ -663,7 +664,7 @@ function App() {
       }
       return c
     }))
-
+    
     alert(`Success: The "${title}" has been sent directly to ${currentChat.name}'s chat.`)
     setCopilotOpen(false) // close modal after action
   }
@@ -671,17 +672,17 @@ function App() {
   // Handle Copilot Chat Submit
   const handleCopilotChatSubmit = (text) => {
     if (!text.trim()) return
-
+    
     // Add user message
     const userMsg = { sender: 'user', text, time: 'Just now' }
     setCopilotChat(prev => [...prev, userMsg])
     setCopilotQuery('')
     setIsCopilotThinking(true)
-
+    
     setTimeout(() => {
       let reply = `Based on my review of ${currentChat.name}'s therapy logs, they have shown consistent compliance with assignments. No cognitive warning flags have been detected, and they are progressing well in clinical sessions.`
       let actions = null
-
+      
       const textLower = text.toLowerCase()
       if (textLower.includes('why is "yoga') || textLower.includes('why is yoga')) {
         reply = `### Rationale for Yoga Recommendation\n\nYoga practice acts as a **somatic regulator** to lower heart-rate variability (HRV) and induce sleep readiness.\n\n* **Primary Indicator:** Client reported somatic OCD tightness.\n* **Secondary Indicator:** Decline in sleep scores over the mid-week period.\n* **Clinical Outcome:** Mitigates avoidance behaviors caused by somatic panic.`
@@ -737,7 +738,7 @@ function App() {
       } else if (textLower.includes('risk') || textLower.includes('predict')) {
         reply = `### Predictive Risk Analysis\n\n* **Overall Risk Profile:** **LOW**\n* **Trigger Points:** Heavy workload or sudden schedule shifts.\n* **Suggested Prevention:** Send a supportive text mid-week to reinforce exposure tasks.`
       }
-
+      
       streamAIResponse(reply, actions)
     }, 800)
   }
@@ -805,7 +806,7 @@ function App() {
       setSelectedAppt(prev => ({
         ...prev,
         status: newStatus,
-        title: newStatus === 'confirmed'
+        title: newStatus === 'confirmed' 
           ? `Hi ${currentChat.name} — your appointment with ${currentChat.name} is confirmed.`
           : `Hi ${currentChat.name} — your appointment with ${currentChat.name} is cancelled.`
       }))
@@ -895,15 +896,15 @@ function App() {
     <div className={`app-container ${darkTheme ? 'dark-theme' : ''}`}>
       {/* MOBILE TOP NAVIGATION BAR */}
       <div className="mobile-nav-bar">
-        <button
-          className="mobile-menu-btn"
+        <button 
+          className="mobile-menu-btn" 
           onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
           aria-label="Open Sidebar"
         >
           <Menu size={20} />
         </button>
         <img src="/mantra_logo.png" alt="Mantra" className="mobile-brand-logo" />
-        <button
+        <button 
           className="theme-toggle-btn"
           onClick={() => setDarkTheme(!darkTheme)}
           aria-label="Toggle Theme"
@@ -914,8 +915,8 @@ function App() {
 
       {/* MOBILE BACKDROP FOR DRAWER */}
       {mobileSidebarOpen && (
-        <div
-          className="modal-overlay"
+        <div 
+          className="modal-overlay" 
           style={{ zIndex: 9 }}
           onClick={() => setMobileSidebarOpen(false)}
         />
@@ -929,8 +930,8 @@ function App() {
           </div>
 
           {/* Desktop Sidebar Collapse Toggle */}
-          <button
-            className="collapse-toggle-btn"
+          <button 
+            className="collapse-toggle-btn" 
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             aria-label={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
@@ -974,11 +975,11 @@ function App() {
               <span className="user-role">{currentChat.role} Provider</span>
             </div>
           </div>
-
+          
           {/* Quick theme toggle inside footer */}
           {!sidebarCollapsed && (
-            <button
-              className="action-icon-btn"
+            <button 
+              className="action-icon-btn" 
               style={{ marginLeft: 'auto', padding: 6 }}
               onClick={(e) => {
                 e.stopPropagation()
@@ -1099,8 +1100,8 @@ function App() {
 
           <div className="header-actions-section">
             {/* AI Copilot Primary Action Button */}
-            <button
-              className="copilot-action-btn"
+            <button 
+              className="copilot-action-btn" 
               onClick={() => setCopilotOpen(true)}
               title="Open AI Copilot Helper"
             >
@@ -1108,15 +1109,15 @@ function App() {
               <span>AI Copilot</span>
             </button>
 
-            <button
-              className="action-icon-btn accent"
+            <button 
+              className="action-icon-btn accent" 
               onClick={() => setBookingModalOpen(true)}
               title="Schedule Appointment"
             >
               <Calendar size={18} />
             </button>
-            <button
-              className="action-icon-btn accent"
+            <button 
+              className="action-icon-btn accent" 
               onClick={startVideoCall}
               title="Start Video Session"
             >
@@ -1171,13 +1172,13 @@ function App() {
                     </button>
                     {item.status === 'requested' && (
                       <>
-                        <button
+                        <button 
                           className="cta-btn primary"
                           onClick={() => handleUpdateApptStatus(item.id, 'confirmed')}
                         >
                           Confirm
                         </button>
-                        <button
+                        <button 
                           className="cta-btn secondary"
                           style={{ color: 'var(--danger-color)' }}
                           onClick={() => handleUpdateApptStatus(item.id, 'cancelled')}
@@ -1200,7 +1201,7 @@ function App() {
                   </div>
                   <p className="cta-card-desc">{item.text}</p>
                   <div className="cta-card-actions">
-                    <button
+                    <button 
                       className="cta-btn primary"
                       onClick={() => handleSendMessage("Let's consult an OCD specialist. I would like to set up a consultation.")}
                     >
@@ -1239,10 +1240,10 @@ function App() {
                 <div key={item.id} className={`message-row ${isUser ? 'sent' : 'received'}`}>
                   <div className="message-bubble">
                     {item.text && <p>{item.text}</p>}
-
+                    
                     {/* Render attachment UI if present */}
                     {item.file && (
-                      <div style={{
+                      <div style={{ 
                         marginTop: 6,
                         padding: 8,
                         borderRadius: 'var(--radius-sm)',
@@ -1255,9 +1256,9 @@ function App() {
                         maxWidth: '220px'
                       }}>
                         <Paperclip size={14} />
-                        <span style={{
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
+                        <span style={{ 
+                          whiteSpace: 'nowrap', 
+                          overflow: 'hidden', 
                           textOverflow: 'ellipsis',
                           fontWeight: 500
                         }}>
@@ -1330,7 +1331,7 @@ function App() {
         {/* BOTTOM MESSAGE INPUT BAR */}
         <footer className="message-input-area">
           <div className="input-card">
-
+            
             {/* Attachment Toast */}
             {attachedFile && (
               <div className="attachment-toast">
@@ -1392,7 +1393,7 @@ function App() {
             </header>
 
             <div className="video-grid">
-
+              
               {/* Left Column: Therapist Feed */}
               <div className="video-feed">
                 {!cameraOff ? (
@@ -1423,14 +1424,14 @@ function App() {
 
             {/* Call Control Center */}
             <div className="video-controls-bar">
-              <button
-                className={`control-btn ${!videoMuted ? 'active' : ''}`}
+              <button 
+                className={`control-btn ${!videoMuted ? 'active' : ''}`} 
                 onClick={() => setVideoMuted(!videoMuted)}
                 title={videoMuted ? "Unmute Mic" : "Mute Mic"}
               >
                 {!videoMuted ? <Mic size={20} /> : <MicOff size={20} />}
               </button>
-              <button
+              <button 
                 className={`control-btn ${!cameraOff ? 'active' : ''}`}
                 onClick={() => setCameraOff(!cameraOff)}
                 title={cameraOff ? "Turn Video On" : "Turn Video Off"}
@@ -1503,8 +1504,8 @@ function App() {
               <button className="cta-btn secondary" onClick={() => setProfileModalOpen(false)}>
                 Close
               </button>
-              <button
-                className="cta-btn primary"
+              <button 
+                className="cta-btn primary" 
                 onClick={() => {
                   setProfileModalOpen(false)
                   setBookingModalOpen(true)
@@ -1527,7 +1528,7 @@ function App() {
                 <X size={16} />
               </button>
             </header>
-
+            
             {/* Action form */}
             <form onSubmit={(e) => {
               e.preventDefault()
@@ -1542,13 +1543,13 @@ function App() {
                 <div className="booking-form">
                   <div className="form-group">
                     <label htmlFor="date">Appointment Date</label>
-                    <input
-                      type="date"
-                      id="date"
-                      name="date"
-                      className="form-input"
-                      defaultValue="2026-07-04"
-                      required
+                    <input 
+                      type="date" 
+                      id="date" 
+                      name="date" 
+                      className="form-input" 
+                      defaultValue="2026-07-04" 
+                      required 
                     />
                   </div>
 
@@ -1604,7 +1605,7 @@ function App() {
                     {selectedAppt.status.toUpperCase()}
                   </span>
                 </div>
-
+                
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: 12, backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Client Name:</span>
@@ -1648,7 +1649,7 @@ function App() {
             <div className="modal-footer">
               {selectedAppt.status === 'requested' && (
                 <>
-                  <button
+                  <button 
                     className="cta-btn primary"
                     onClick={() => {
                       handleUpdateApptStatus(selectedAppt.id, 'confirmed')
@@ -1656,7 +1657,7 @@ function App() {
                   >
                     Confirm Session
                   </button>
-                  <button
+                  <button 
                     className="cta-btn secondary"
                     style={{ color: 'var(--danger-color)' }}
                     onClick={() => {
@@ -1668,7 +1669,7 @@ function App() {
                 </>
               )}
               {selectedAppt.status === 'confirmed' && (
-                <button
+                <button 
                   className="cta-btn secondary"
                   style={{ color: 'var(--danger-color)' }}
                   onClick={() => {
@@ -1712,23 +1713,23 @@ function App() {
                 { name: 'Open AI Copilot Helper', cmd: 'copilot', shortcut: 'A', icon: Brain },
                 { name: 'Clear Active Chat Logs', cmd: 'clear', shortcut: 'C', icon: X }
               ]
-                .filter(i => i.name.toLowerCase().includes(cmdSearch.toLowerCase()))
-                .map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <button
-                      key={item.cmd}
-                      className="cmd-item"
-                      onClick={() => executeCommand(item.cmd)}
-                    >
-                      <div className="cmd-item-left">
-                        <Icon size={16} className="text-secondary" />
-                        <span>{item.name}</span>
-                      </div>
-                      <span className="cmd-item-right">⌘{item.shortcut}</span>
-                    </button>
-                  )
-                })}
+              .filter(i => i.name.toLowerCase().includes(cmdSearch.toLowerCase()))
+              .map((item) => {
+                const Icon = item.icon
+                return (
+                  <button 
+                    key={item.cmd} 
+                    className="cmd-item"
+                    onClick={() => executeCommand(item.cmd)}
+                  >
+                    <div className="cmd-item-left">
+                      <Icon size={16} className="text-secondary" />
+                      <span>{item.name}</span>
+                    </div>
+                    <span className="cmd-item-right">⌘{item.shortcut}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -1784,69 +1785,57 @@ function App() {
               ) : (
                 <div className="copilot-tabbed-layout animate-fadeIn">
 
-                  {/* ── Tab bar ── */}
-                  <div className="copilot-tabs-bar" role="tablist">
-                    <div className="copilot-tabs-list-wrapper">
-                      <button role="tab" className={`copilot-tab-btn ${copilotTab === 'ai-summary' ? 'active' : ''}`} onClick={() => setCopilotTab('ai-summary')}>AI Summary</button>
+                  {/* Top Product Comparison Toggle Bar */}
+                  <div className="copilot-dev-toggle-bar">
+                    <span className="copilot-dev-toggle-label">CARE ASSISTANT EXPERIENCE</span>
+                    <div className="copilot-dev-toggle-pill-wrapper">
                       <button
-                        role="tab"
-                        className={`copilot-tab-btn ${copilotTab === 'automations' ? 'active' : ''}`}
-                        onClick={() => setCopilotTab('automations')}
-                      >
-                        Automations
-                      </button>
-                      <button
-                        role="tab"
-                        className={`copilot-tab-btn ${copilotTab === 'ask-ai' ? 'active' : ''}`}
+                        type="button"
+                        className={`copilot-dev-toggle-btn ${uxMode === 'aichat' ? 'active' : ''}`}
                         onClick={() => {
-                          if (isPremium) {
-                            setCopilotTab('ask-ai');
-                          } else {
-                            setPendingTab('ask-ai');
-                            setUpsellModalOpen(true);
+                          setUxMode('aichat')
+                          if (copilotTab === 'care-assistant' || copilotTab === 'automations') {
+                            setCopilotTab('ask-ai')
                           }
                         }}
                       >
-                        Ask AI {!isPremium && <LockIcon />}
+                        AI CHAT
                       </button>
                       <button
-                        role="tab"
-                        className={`copilot-tab-btn ${copilotTab === 'treatment-plans' ? 'active' : ''}`}
+                        type="button"
+                        className={`copilot-dev-toggle-btn ${uxMode === 'separate' ? 'active' : ''}`}
                         onClick={() => {
-                          if (isPremium) {
-                            setCopilotTab('treatment-plans');
-                          } else {
-                            setPendingTab('treatment-plans');
-                            setUpsellModalOpen(true);
-                          }
+                          setUxMode('separate')
+                          setCopilotTab('care-assistant')
                         }}
                       >
-                        Treatment Plans {!isPremium && <LockIcon />}
-                      </button>
-                    </div>
-
-                    {/* Demo/Testing Provider Type toggle */}
-                    <div className="demo-provider-type-toggle">
-                      <span className="demo-toggle-label">Provider Type:</span>
-                      <button
-                        type="button"
-                        className={`demo-toggle-opt ${!isPremium ? 'active' : ''}`}
-                        onClick={() => setIsPremium(false)}
-                      >
-                        Free
-                      </button>
-                      <button
-                        type="button"
-                        className={`demo-toggle-opt ${isPremium ? 'active' : ''}`}
-                        onClick={() => setIsPremium(true)}
-                      >
-                        Premium
+                        SEPARATE PAGE
                       </button>
                     </div>
                   </div>
 
-                  {/* ── AI SUMMARY TAB ── */}
-                  {copilotTab === 'ai-summary' && (
+                  {/* ── Tab bar ── */}
+                  <div className="copilot-tabs-bar" role="tablist">
+                    <div className="copilot-tabs-list-wrapper">
+                      <button role="tab" className={`copilot-tab-btn ${(copilotTab === 'overview' || copilotTab === 'ai-summary') ? 'active' : ''}`} onClick={() => setCopilotTab('overview')}>Clinical Snapshot</button>
+                      <button role="tab" className={`copilot-tab-btn ${copilotTab === 'ask-ai' ? 'active' : ''}`} onClick={() => setCopilotTab('ask-ai')}>Ask AI</button>
+                      <button role="tab" className={`copilot-tab-btn ${copilotTab === 'care-plan' || copilotTab === 'treatment-plans' ? 'active' : ''}`} onClick={() => setCopilotTab('care-plan')}>Care Plan</button>
+                      
+                      {/* 4th Tab visible in Separate Mode */}
+                      {uxMode === 'separate' && (
+                        <button
+                          role="tab"
+                          className={`copilot-tab-btn copilot-tab-btn--care-assistant ${(copilotTab === 'care-assistant' || copilotTab === 'automations') ? 'active' : ''}`}
+                          onClick={() => setCopilotTab('care-assistant')}
+                        >
+                          ✨ Care Assistant
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── CLINICAL SNAPSHOT TAB ── */}
+                  {copilotTab === 'overview' && (
                     <div className="copilot-tab-panel copilot-overview-panel" role="tabpanel">
                       <AISummary
                         isSummaryExpanded={isSummaryExpanded}
@@ -1866,7 +1855,7 @@ function App() {
                   {copilotTab === 'ask-ai' && (
                     <div className="copilot-tab-panel copilot-ask-ai-panel" role="tabpanel">
 
-                      {/* Chat log */}
+                      {/* Chat log - 100% clean conversation */}
                       <div className="copilot-workspace-chat-log">
                         {copilotChat.map((msg) => (
                           <div key={msg.id || msg.text} className={`copilot-bubble-row ${msg.sender}`}>
@@ -1896,8 +1885,17 @@ function App() {
                         <div ref={copilotEndRef} />
                       </div>
 
-                      {/* Chips + input */}
+                      {/* Controls / Input area */}
                       <div className="copilot-workspace-input-controls">
+                        
+                        {/* Care Assistant Anchored Popover in AI Chat Mode */}
+                        {uxMode === 'aichat' && (
+                          <CareAssistantPopover
+                            automations={automations}
+                            onUpdateAutomation={handleUpdateAutomation}
+                          />
+                        )}
+
                         {/* Suggested prompt chips */}
                         <div className="suggested-prompts-row-wrapper">
                           <div className="suggested-prompts-scroller">
@@ -1992,20 +1990,24 @@ function App() {
                     </div>
                   )}
 
-                  {/* ── TREATMENT PLANS TAB ── */}
-                  {copilotTab === 'treatment-plans' && (
+                  {/* ── CARE PLAN TAB ── */}
+                  {copilotTab === 'care-plan' && (
                     <div className="copilot-tab-panel copilot-care-plan-panel" role="tabpanel">
                       <TreatmentPlanStudio
-                        onClose={() => setCopilotTab('ai-summary')}
+                        onClose={() => setCopilotTab('overview')}
                         onSendToClient={handleSendTreatmentPlan}
                       />
                     </div>
                   )}
 
-                  {/* ── AUTOMATIONS TAB ── */}
-                  {copilotTab === 'automations' && (
-                    <div className="copilot-tab-panel copilot-care-assistant-panel" role="tabpanel">
-                      <Automations clientName={currentChat?.name} />
+                  {/* ── CARE ASSISTANT TAB ── */}
+                  {(copilotTab === 'care-assistant' || copilotTab === 'automations') && (
+                    <div className="copilot-tab-panel copilot-care-assistant-panel" role="tabpanel" style={{ padding: 0, overflow: 'hidden' }}>
+                      <CareAssistant
+                        automations={automations}
+                        onUpdateAutomation={handleUpdateAutomation}
+                        onToggleStatus={handleToggleAutomationStatus}
+                      />
                     </div>
                   )}
 
@@ -2039,64 +2041,74 @@ function App() {
             <button className="ca-upsell-close-btn" onClick={() => setUpsellModalOpen(false)}>
               <X size={18} />
             </button>
-
+            
+            {/* Top illustration orb */}
             <div className="ca-upsell-icon-header">
               <div className="ca-upsell-sparkle-orb">
                 <Sparkles size={28} className="ca-upsell-sparkle-icon" />
               </div>
             </div>
 
-            <div className="ca-upsell-title-row" style={{ flexDirection: 'column', gap: '4px' }}>
-              <h2 className="ca-upsell-title">Unlock AI Clinical Intelligence</h2>
-              <p className="ca-upsell-subtitle" style={{ marginTop: '0px' }}>
-                Upgrade to Premium to access AI-powered clinical tools.
-              </p>
+            {/* Title + Premium badge */}
+            <div className="ca-upsell-title-row">
+              <h2 className="ca-upsell-title">Meet Care Assistant</h2>
+              <span className="ca-upsell-premium-badge">PREMIUM</span>
+            </div>
+            <p className="ca-upsell-subtitle">
+              Your AI teammate that keeps supporting clients between sessions.
+            </p>
+
+            {/* Benefit Cards (4) */}
+            <div className="ca-upsell-benefits-grid">
+              <div className="ca-upsell-benefit-card">
+                <span className="ca-upsell-benefit-emoji">💙</span>
+                <div className="ca-upsell-benefit-text">
+                  <div className="ca-upsell-benefit-title">Stay connected</div>
+                  <div className="ca-upsell-benefit-desc">Automatic mood check-ins and follow-ups.</div>
+                </div>
+              </div>
+
+              <div className="ca-upsell-benefit-card">
+                <span className="ca-upsell-benefit-emoji">⏰</span>
+                <div className="ca-upsell-benefit-text">
+                  <div className="ca-upsell-benefit-title">Save hours</div>
+                  <div className="ca-upsell-benefit-desc">Automate reminders and routine communication.</div>
+                </div>
+              </div>
+
+              <div className="ca-upsell-benefit-card">
+                <span className="ca-upsell-benefit-emoji">📈</span>
+                <div className="ca-upsell-benefit-text">
+                  <div className="ca-upsell-benefit-title">Improve retention</div>
+                  <div className="ca-upsell-benefit-desc">Never miss renewals or payment follow-ups.</div>
+                </div>
+              </div>
+
+              <div className="ca-upsell-benefit-card">
+                <span className="ca-upsell-benefit-emoji">🚨</span>
+                <div className="ca-upsell-benefit-text">
+                  <div className="ca-upsell-benefit-title">Stay informed</div>
+                  <div className="ca-upsell-benefit-desc">Get notified when important client events need your attention.</div>
+                </div>
+              </div>
             </div>
 
-            <div className="ca-premium-features-list">
-              <div className="ca-premium-feature-item">
-                <Check size={16} className="ca-premium-check" />
-                <span>Ask clinical questions instantly</span>
-              </div>
-              <div className="ca-premium-feature-item">
-                <Check size={16} className="ca-premium-check" />
-                <span>Generate SOAP Notes</span>
-              </div>
-              <div className="ca-premium-feature-item">
-                <Check size={16} className="ca-premium-check" />
-                <span>Create professional care plans</span>
-              </div>
-              <div className="ca-premium-feature-item">
-                <Check size={16} className="ca-premium-check" />
-                <span>Faster documentation</span>
-              </div>
-              <div className="ca-premium-feature-item">
-                <Check size={16} className="ca-premium-check" />
-                <span>Better clinical decisions</span>
-              </div>
-              <div className="ca-premium-feature-item">
-                <Check size={16} className="ca-premium-check" />
-                <span>Save hours every week</span>
-              </div>
+            {/* Social Proof */}
+            <div className="ca-upsell-social-proof">
+              Trusted by providers to automate routine care while improving client engagement.
             </div>
 
-            <div className="ca-upsell-actions-section" style={{ marginTop: '24px' }}>
-              <button
-                className="ca-upsell-btn-primary"
-                onClick={() => {
-                  setIsPremium(true);
-                  setUpsellModalOpen(false);
-                  if (pendingTab) setCopilotTab(pendingTab);
-                  setPendingTab(null);
-                }}
-              >
-                Upgrade to Premium
+            {/* Action buttons */}
+            <div className="ca-upsell-actions-section">
+              <button className="ca-upsell-btn-primary" onClick={() => { setIsPremium(true); setUpsellModalOpen(false); setCopilotTab('care-assistant'); }}>
+                Unlock Premium
               </button>
               <button className="ca-upsell-btn-secondary" onClick={() => setUpsellModalOpen(false)}>
                 Maybe Later
               </button>
               <div className="ca-upsell-footer-note">Included in Premium Provider plans.</div>
             </div>
+
           </div>
         </div>
       )}
